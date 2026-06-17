@@ -2,18 +2,44 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+
 from src.analytics import get_summary
 from src.recommendation_engine import get_recommendation
+from src.intent_engine import add_intent
 
-# =====================================
-# PAGE CONFIG
-# =====================================
+from src.customer_health import add_health_metrics
 
-st.set_page_config(
-    page_title="AI Customer Segmentation Dashboard",
-    page_icon="📊",
-    layout="wide"
+from src.customer_scoring import add_customer_scoring
+
+from src.channel_intelligence import (
+    recommend_channel,
+    recommend_time
 )
+
+from src.campaign_generator import (
+    generate_campaign
+)
+
+from src.performance_predictor import (
+    predict_conversion,
+    predict_roi
+)
+
+from src.forecasting import (
+    revenue_forecast
+)
+
+from src.marketing_assistant import (
+    answer_query
+)
+from src.behavior_intent import (
+    detect_intent,
+    get_strategy
+)
+from src.customer_age import add_age_group
+
+
+
 
 # =====================================
 # CUSTOM CSS
@@ -53,6 +79,44 @@ section[data-testid="stSidebar"] {
 df = pd.read_csv(
     "data/segmented_customers.csv"
 )
+
+df = add_intent(df)
+
+df = add_age_group(df)
+
+df = add_health_metrics(df)
+
+df = add_customer_scoring(df)
+
+df["RecommendedChannel"] = df.apply(
+
+    lambda row:
+    recommend_channel(
+
+        row["AgeGroup"],
+        row["Intent"],
+        row["Segment"]
+
+    ),
+
+    axis=1
+)
+
+df["CampaignTime"] = (
+    df["AgeGroup"]
+    .apply(recommend_time)
+)
+
+df["ExpectedConversion"] = (
+    df["Segment"]
+    .apply(predict_conversion)
+)
+
+df["ExpectedROI"] = (
+    df["Segment"]
+    .apply(predict_roi)
+)
+
 
 # =====================================
 # RISK LEVEL
@@ -133,25 +197,33 @@ st.sidebar.metric(
 # =====================================
 
 st.title(
-    "📊 AI-Powered Customer Segmentation Dashboard"
+    "🚀 IntentReach AI"
 )
 
 st.caption(
-    "Customer Intelligence • Business Insights • Retention Analytics"
+    "Predict Intent • Understand Customers • Optimize Campaigns"
 )
 
 # =====================================
 # TABS
 # =====================================
 
-tab1, tab2, tab3, tab4 = st.tabs(
-    [
-        "📈 Overview",
-        "📊 Analytics",
-        "👤 Customers",
-        "📄 Reports"
-    ]
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
+[
+    "📈 Overview",
+    "📊 Analytics",
+    "👤 Customers",
+    "📄 Reports",
+    "🎯 Intent Radar",
+    "❤️ Customer Health",
+    "⭐ Customer Scoring",
+    "📢 Campaign Intelligence",
+    "🤖 AI Assistant",
+    "🧠 Behavioral Intent",
+    "📈 Revenue Forecast"
+]
 )
+
 
 # =====================================
 # OVERVIEW TAB
@@ -702,6 +774,328 @@ with tab4:
 # =====================================
 
 st.markdown("---")
+# =====================================
+# INTENTREACH AI TAB
+# =====================================
+
+with tab5:
+
+    st.header(
+        "🎯 IntentReach AI"
+    )
+
+    st.subheader(
+        "Customer Intent Distribution"
+    )
+
+    intent_count = (
+        df["Intent"]
+        .value_counts()
+        .reset_index()
+    )
+
+    intent_count.columns = [
+        "Intent",
+        "Customers"
+    ]
+
+    fig = px.bar(
+
+        intent_count,
+
+        x="Intent",
+
+        y="Customers",
+
+        color="Intent",
+
+        text_auto=True
+    )
+
+    fig.update_layout(
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+    st.subheader(
+        "AI Campaign Generator"
+    )
+
+    customer = st.selectbox(
+        "Select Customer",
+        df["CustomerID"]
+    )
+
+    selected = df[
+        df["CustomerID"]
+        ==
+        customer
+    ].iloc[0]
+
+    st.info(
+        f"Intent: {selected['Intent']}"
+    )
+
+# =====================================
+# CUSTOMER HEALTH TAB
+# =====================================
+
+with tab6:
+
+    st.header(
+        "❤️ Customer Health"
+    )
+
+    st.dataframe(
+
+        df[
+            [
+                "CustomerID",
+                "HealthScore",
+                "HealthStatus"
+            ]
+        ],
+
+        use_container_width=True
+    )
+
+    fig = px.histogram(
+
+        df,
+
+        x="HealthStatus",
+
+        color="HealthStatus"
+
+    )
+
+    fig.update_layout(
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+  # =====================================
+# CUSTOMER SCORING TAB
+# =====================================
+
+with tab7:
+
+    st.header(
+        "⭐ Customer Scoring"
+    )
+
+    st.dataframe(
+
+        df[
+            [
+                "CustomerID",
+                "CustomerScore",
+                "Tier"
+            ]
+        ],
+
+        use_container_width=True
+    )
+
+    fig = px.histogram(
+
+        df,
+
+        x="Tier",
+
+        color="Tier"
+
+    )
+
+    fig.update_layout(
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+    # =====================================
+# CAMPAIGN INTELLIGENCE TAB
+# =====================================
+
+with tab8:
+
+    st.header(
+        "📢 Campaign Intelligence"
+    )
+
+    customer = st.selectbox(
+        "Select Customer",
+        df["CustomerID"],
+        key="campaign_customer"
+    )
+
+    row = df[
+        df["CustomerID"] == customer
+    ].iloc[0]
+
+    campaign = generate_campaign(
+        row["Intent"]
+    )
+
+    st.success(campaign)
+
+    st.metric(
+        "Recommended Channel",
+        row["RecommendedChannel"]
+    )
+
+    st.metric(
+        "Best Campaign Time",
+        row["CampaignTime"]
+    )
+
+    st.metric(
+        "Expected Conversion",
+        f"{row['ExpectedConversion']}%"
+    )
+
+    st.metric(
+        "Expected ROI",
+        f"{row['ExpectedROI']}%"
+    )
+    # =====================================
+# AI ASSISTANT TAB
+# =====================================
+
+with tab9:
+
+    st.header(
+        "🤖 AI Marketing Assistant"
+    )
+
+    question = st.text_input(
+        "Ask IntentReach AI"
+    )
+
+    if question:
+
+        answer = answer_query(
+            question,
+            df
+        )
+
+        st.success(
+            answer
+        )
+with tab10:
+
+    st.header(
+        "🧠 Behavioral Intent Analyzer"
+    )
+
+    st.write(
+        "Enter customer behavior or interests to predict intent."
+    )
+
+    user_text = st.text_area(
+        "Customer Behavior"
+    )
+
+    if st.button(
+        "Analyze Intent"
+    ):
+
+        intent = detect_intent(
+            user_text
+        )
+
+        st.success(
+            f"Predicted Intent: {intent}"
+        )
+
+        strategy = get_strategy(
+            intent
+        )
+
+        if strategy:
+
+            st.subheader(
+                "Recommended Products"
+            )
+
+            for product in strategy["Products"]:
+
+                st.write(
+                    f"✅ {product}"
+                )
+# =====================================
+# REVENUE FORECAST TAB
+# =====================================
+
+# =====================================
+# REVENUE FORECAST TAB
+# =====================================
+
+with tab11:
+
+    st.header(
+        "📈 Revenue Forecast"
+    )
+
+    forecast = revenue_forecast(df)
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "30 Days Revenue",
+        f"₹{forecast['30 Days']:,.2f}"
+    )
+
+    col2.metric(
+        "60 Days Revenue",
+        f"₹{forecast['60 Days']:,.2f}"
+    )
+
+    col3.metric(
+        "90 Days Revenue",
+        f"₹{forecast['90 Days']:,.2f}"
+    )
+
+    forecast_df = pd.DataFrame(
+        {
+            "Period": [
+                "30 Days",
+                "60 Days",
+                "90 Days"
+            ],
+            "Revenue": [
+                forecast["30 Days"],
+                forecast["60 Days"],
+                forecast["90 Days"]
+            ]
+        }
+    )
+
+    fig = px.line(
+        forecast_df,
+        x="Period",
+        y="Revenue",
+        markers=True,
+        title="Revenue Forecast Trend"
+    )
+
+    fig.update_layout(
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 st.caption(
     "🚀 Built with Streamlit • Plotly • Pandas • Scikit-Learn"
