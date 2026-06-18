@@ -10,6 +10,8 @@ from src.intent_engine import add_intent
 from src.customer_health import add_health_metrics
 
 from src.customer_scoring import add_customer_scoring
+from src.ai_ad_generator import generate_ai_ad
+
 
 from src.channel_intelligence import (
     recommend_channel,
@@ -37,7 +39,12 @@ from src.behavior_intent import (
     get_strategy
 )
 from src.customer_age import add_age_group
-
+from src.explainable_ai import (
+    explain_customer
+)
+from src.ai_ad_generator import (
+    generate_ai_ad
+)
 
 
 
@@ -430,107 +437,13 @@ with tab2:
         use_container_width=True
     )
 
-    # ==========================
-    # RECENCY VS SPENDING
-    # ==========================
+    
 
-    st.subheader(
-        "⏳ Recency vs Spending"
-    )
+# =====================================
+# CUSTOMERS TAB
 
-    fig3 = px.scatter(
-        df,
-        x="Recency",
-        y="TotalSpent",
-        color="Segment",
-        hover_data=[
-            "CustomerID"
-        ]
-    )
 
-    fig3.update_layout(
-        template="plotly_dark",
-        height=500
-    )
-
-    st.plotly_chart(
-        fig3,
-        use_container_width=True
-    )
-
-    # ==========================
-    # HISTOGRAMS
-    # ==========================
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.subheader(
-            "💰 Spending Distribution"
-        )
-
-        fig4 = px.histogram(
-            df,
-            x="TotalSpent",
-            color="Segment",
-            nbins=30
-        )
-
-        fig4.update_layout(
-            template="plotly_dark",
-            height=450
-        )
-
-        st.plotly_chart(
-            fig4,
-            use_container_width=True
-        )
-
-    with col2:
-
-        st.subheader(
-            "🛒 Orders Distribution"
-        )
-
-        fig5 = px.histogram(
-            df,
-            x="TotalOrders",
-            color="Segment",
-            nbins=30
-        )
-
-        fig5.update_layout(
-            template="plotly_dark",
-            height=450
-        )
-
-        st.plotly_chart(
-            fig5,
-            use_container_width=True
-        )
-
-    st.subheader(
-        "⏳ Recency Distribution"
-    )
-
-    fig6 = px.histogram(
-        df,
-        x="Recency",
-        color="Segment",
-        nbins=30
-    )
-
-    fig6.update_layout(
-        template="plotly_dark",
-        height=450
-    )
-
-    st.plotly_chart(
-        fig6,
-        use_container_width=True
-    )
-
+        
 # =====================================
 # CUSTOMERS TAB
 # =====================================
@@ -547,59 +460,39 @@ with tab3:
 
     customer_id = st.number_input(
         "Enter Customer ID",
-        min_value=int(
-            df["CustomerID"].min()
-        ),
-        max_value=int(
-            df["CustomerID"].max()
-        ),
+        min_value=int(df["CustomerID"].min()),
+        max_value=int(df["CustomerID"].max()),
         step=1
     )
 
-    if st.button(
-        "Search Customer"
-    ):
+    if st.button("Search Customer"):
 
         customer = df[
-            df["CustomerID"] ==
-            customer_id
+            df["CustomerID"] == customer_id
         ]
 
         if not customer.empty:
 
-            customer = (
-                customer.iloc[0]
-            )
+            customer = customer.iloc[0]
 
-            c1, c2, c3 = (
-                st.columns(3)
-            )
+            c1, c2, c3 = st.columns(3)
 
             c1.metric(
                 "Customer ID",
-                int(
-                    customer["CustomerID"]
-                )
+                int(customer["CustomerID"])
             )
 
             c2.metric(
                 "Orders",
-                int(
-                    customer["TotalOrders"]
-                )
+                int(customer["TotalOrders"])
             )
 
             c3.metric(
                 "Total Spent",
-                round(
-                    customer["TotalSpent"],
-                    2
-                )
+                round(customer["TotalSpent"], 2)
             )
 
-            c4, c5, c6 = (
-                st.columns(3)
-            )
+            c4, c5, c6 = st.columns(3)
 
             c4.metric(
                 "Segment",
@@ -613,9 +506,7 @@ with tab3:
 
             c6.metric(
                 "Rank",
-                int(
-                    customer["Rank"]
-                )
+                int(customer["Rank"])
             )
 
             st.success(
@@ -624,11 +515,63 @@ with tab3:
                 )
             )
 
+            st.subheader(
+                "🧠 Explainable AI"
+            )
+
+            explanation = explain_customer(
+                customer
+            )
+
+            st.info(explanation)
+
         else:
 
             st.error(
                 "Customer Not Found"
             )
+
+    st.subheader(
+        "🏆 Top 10 Customers"
+    )
+
+    top_customers = (
+        df.sort_values(
+            "TotalSpent",
+            ascending=False
+        )
+        .head(10)
+    )
+
+    st.dataframe(
+        top_customers,
+        use_container_width=True
+    )
+
+    st.subheader(
+        "📂 Cluster Wise Customer Details"
+    )
+
+    for segment in sorted(
+        df["Segment"].unique()
+    ):
+
+        segment_df = df[
+            df["Segment"] == segment
+        ]
+
+        with st.expander(
+            f"{segment} ({len(segment_df)} Customers)"
+        ):
+
+            st.dataframe(
+                segment_df,
+                use_container_width=True
+            )
+
+       
+
+   
 
     # ==========================
     # TOP CUSTOMERS
@@ -651,31 +594,7 @@ with tab3:
         use_container_width=True
     )
 
-    # ==========================
-    # CLUSTER DETAILS
-    # ==========================
-
-    st.subheader(
-        "📂 Cluster Wise Customer Details"
-    )
-
-    for segment in sorted(
-        df["Segment"].unique()
-    ):
-
-        segment_df = df[
-            df["Segment"] ==
-            segment
-        ]
-
-        with st.expander(
-            f"{segment} ({len(segment_df)} Customers)"
-        ):
-
-            st.dataframe(
-                segment_df,
-                use_container_width=True
-            )
+  
 
 # =====================================
 # REPORTS TAB
@@ -922,15 +841,12 @@ with tab7:
         fig,
         use_container_width=True
     )
-    # =====================================
+# =====================================
 # CAMPAIGN INTELLIGENCE TAB
 # =====================================
-
 with tab8:
 
-    st.header(
-        "📢 Campaign Intelligence"
-    )
+    st.header("📢 Campaign Intelligence")
 
     customer = st.selectbox(
         "Select Customer",
@@ -946,7 +862,7 @@ with tab8:
         row["Intent"]
     )
 
-    st.success(campaign)
+    st.info(...)
 
     st.metric(
         "Recommended Channel",
@@ -967,7 +883,33 @@ with tab8:
         "Expected ROI",
         f"{row['ExpectedROI']}%"
     )
-    # =====================================
+
+    # ADD THE AI AD SECTION HERE
+
+    st.subheader(
+        "🎨 AI Generated Advertisement"
+    )
+
+    if st.button(
+        "Generate Personalized Ad",
+        key="generate_ad_btn"
+    ):
+
+        ad = generate_ai_ad(row)
+
+        st.markdown(
+            ad,
+            unsafe_allow_html=True
+        )
+
+        st.download_button(
+            "📥 Download Advertisement",
+            data=ad,
+            file_name="Personalized_Ad.html",
+            mime="text/html"
+        )
+ 
+ # =====================================
 # AI ASSISTANT TAB
 # =====================================
 
@@ -991,6 +933,10 @@ with tab9:
         st.success(
             answer
         )
+# =====================================
+# BEHAVIORAL INTENT ANALYZER
+# =====================================
+
 with tab10:
 
     st.header(
@@ -1032,10 +978,14 @@ with tab10:
                 st.write(
                     f"✅ {product}"
                 )
-# =====================================
-# REVENUE FORECAST TAB
-# =====================================
 
+            st.subheader(
+                "Recommended Marketing Strategy"
+            )
+
+            st.info(
+                strategy["Strategy"]
+            )
 # =====================================
 # REVENUE FORECAST TAB
 # =====================================
